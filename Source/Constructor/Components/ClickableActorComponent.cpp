@@ -31,14 +31,14 @@ void UClickableActorComponent::BeginPlay()
 
 void UClickableActorComponent::OnClicked(AActor* InActorClicked, FKey InButtonPressed)
 {
-	UE_LOG(LogConstructor, Log, TEXT("Clicked Actor:%s"), *InActorClicked->GetName());
-
 	if (const auto OwnerActor = GetOwner())
 	{
 		if (const auto StaticMeshComponent = OwnerActor->FindComponentByClass<UStaticMeshComponent>())
 		{
 			bIsSelected = !bIsSelected;
 
+			SelectionStatusChangedHandle.Broadcast(GetOwner(), bIsSelected);
+			
 			if (bIsSelected)
 			{
 				StaticMeshComponent->SetMaterial(0, SelectedMaterial);

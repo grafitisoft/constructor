@@ -6,12 +6,15 @@
 #include "BlueprintActor.h"
 #include "Components/BoxComponent.h"
 #include "Components/Button.h"
+#include "Components/TextBlock.h"
 #include "Components/WidgetComponent.h"
 #include "Constructor/Constructor.h"
 #include "Constructor/ConstructorCharacter.h"
 #include "Constructor/Components/BlueprintManagerActorComponent.h"
+#include "Constructor/Components/ClickableActorComponent.h"
 #include "Constructor/Components/ConstructionActorComponent.h"
 #include "Constructor/Support/BlueprintObject.h"
+#include "Constructor/UI/ConfirmDialgueWidget.h"
 #include "Constructor/UI/WorkbenchWidget.h"
 #include "Kismet/GameplayStatics.h"
 
@@ -47,8 +50,18 @@ void AWorkbenchActor::BeginPlay()
 			
 			WorkbenchWidget->BtnPlace->OnClicked.AddDynamic(this, &ThisClass::OnBtnPlaceClicked);
 			WorkbenchWidget->BtnSaveBlueprint->OnClicked.AddDynamic(this, &ThisClass::OnBtnSaveClicked);
+			WorkbenchWidget->BtnDeleteSelected->OnClicked.AddDynamic(this, &ThisClass::OnBtnDeleteSelectedClicked);
 		}
 	}
+
+	ConfirmationDialogueWidget = CreateWidget<UConfirmDialgueWidget>(WorkbenchWidget, DialogueWidgetClass, FName("Confirmation"));
+	if (ConfirmationDialogueWidget)
+	{
+		ConfirmationDialogueWidget->ConfirmationDialogueClosedHandle.AddDynamic(this, &ThisClass::OnConfirmationDialogueClosed);
+		ConfirmationDialogueWidget->AddToViewport();
+		ConfirmationDialogueWidget->SetVisibility(ESlateVisibility::Collapsed);
+	}
+	
 
 	ConstructorComponent->OnConstructionObjectPlacedHandle.AddDynamic(this, &ThisClass::OnConstructionObjectPlaced);
 	BoxColliderComponent->OnComponentBeginOverlap.AddDynamic(this, &ThisClass::OnOverlapped);
@@ -66,14 +79,12 @@ void AWorkbenchActor::BeginPlay()
 		InputComponent->BindAxis(FName("ScalePiece"), this, &ThisClass::OnScale);
 	}
 
-	SelectConstructMesh();
+	SwitchConstructMesh();
 }
 
 void AWorkbenchActor::OnOverlapped(UPrimitiveComponent* OverlappedComponent, AActor* OtherActor, UPrimitiveComponent* OtherComp,
                                    int32 OtherBodyIndex, bool bFromSweep, const FHitResult& SweepResult)
 {
-	UE_LOG(LogConstructor, Log, TEXT("Overlapped Actor:%s"), *OtherActor->GetName());
-
 	if (Cast<AConstructorCharacter>(OtherActor))
 	{
 		bIsPlayerIn = !bIsPlayerIn;
@@ -113,7 +124,7 @@ void AWorkbenchActor::ToggleUI()
 	}
 }
 
-void AWorkbenchActor::SelectConstructMesh()
+void AWorkbenchActor::SwitchConstructMesh()
 {
 	if (ConstructionParts.Num() > 0)
 	{
@@ -128,8 +139,6 @@ void AWorkbenchActor::SelectConstructMesh()
 
 void AWorkbenchActor::OnBtnPlaceClicked()
 {
-	UE_LOG(LogConstructor, Log, TEXT("Place Button Clicked"));
-
 	if (IsValid(ConstructorComponent))
 	{
 		ConstructorComponent->BeginPlacement(CurrentConstructMesh,ECC_GameTraceChannel2); // Workbench channel	
@@ -161,6 +170,19 @@ void AWorkbenchActor::OnBtnSaveClicked()
 	}
 
 	PlacedConstructionActors.Empty();
+	SelectedConstructionActors.Empty();
+}
+
+void AWorkbenchActor::OnBtnDeleteSelectedClicked()
+{
+	if (SelectedConstructionActors.Num() != 0)
+	{
+		if (ConfirmationDialogueWidget)
+		{
+			ConfirmationDialogueWidget->ConfirmationText->SetText(FText::FromString("Selected components will be removed from blueprint?"));
+			ConfirmationDialogueWidget->SetVisibility(ESlateVisibility::Visible);
+		}
+	}
 }
 
 void AWorkbenchActor::OnLeftMouseClicked()
@@ -182,7 +204,7 @@ void AWorkbenchActor::OnSelectNextPiece()
 		CurrentSelectedMeshIndex = 0;
 	}
 
-	SelectConstructMesh();
+	SwitchConstructMesh();
 }
 
 void AWorkbenchActor::OnSelectPreviousPiece()
@@ -196,7 +218,7 @@ void AWorkbenchActor::OnSelectPreviousPiece()
 		CurrentSelectedMeshIndex = ConstructionParts.Num() - 1;
 	}
 	
-	SelectConstructMesh();
+	SwitchConstructMesh();
 }
 
 void AWorkbenchActor::OnRotate(float InAxisValue)
@@ -224,14 +246,39 @@ void AWorkbenchActor::OnScale(float InAxisValue)
 
 void AWorkbenchActor::OnConstructionObjectPlaced(UConstructionActorComponent* InConstructionComponent, AActor* InNewActor)
 {
-	/*
-	if (IsValid(InNewActor))
+	PlacedConstructionActors.Add(InNewActor);
+
+	if (const auto ClickableComponent = InNewActor->FindComponentByClass<UClickableActorComponent>())
 	{
-		if (IsValid(BlueprintManagerComponent))
+		ClickableComponent->SelectionStatusChangedHandle.AddDynamic(this, &ThisClass::OnConstructionActorStatusChanged);
+	}
+}
+
+void AWorkbenchActor::OnConstructionActorStatusChanged(AActor* InActor, bool IsSelected)
+{
+	if (IsValid(InActor))
+	{
+		if (IsSelected && !SelectedConstructionActors.Contains(InActor))
 		{
-			BlueprintManagerComponent->AddBlueprintObject(InNewActor);
+			SelectedConstructionActors.Add(InActor);
+		}
+		else if (SelectedConstructionActors.Contains(InActor))
+		{
+			SelectedConstructionActors.Remove(InActor);
 		}
 	}
-*/
-	PlacedConstructionActors.Add(InNewActor);
+}
+
+void AWorkbenchActor::OnConfirmationDialogueClosed(bool IsConfirmed)
+{
+	if (IsConfirmed)
+	{
+		for(auto Actor : SelectedConstructionActors)
+		{
+			PlacedConstructionActors.Remove(Actor);
+			Actor->Destroy();
+		}
+
+		SelectedConstructionActors.Empty();
+	}
 }

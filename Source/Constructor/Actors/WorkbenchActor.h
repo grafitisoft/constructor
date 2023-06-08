@@ -6,6 +6,7 @@
 #include "GameFramework/Actor.h"
 #include "WorkbenchActor.generated.h"
 
+class UConfirmDialgueWidget;
 DECLARE_DYNAMIC_MULTICAST_DELEGATE_TwoParams(FWorkbenchActivationStatusChangedDelegate, AWorkbenchActor *, InWorkbench, bool, IsActive);
 
 UCLASS()
@@ -63,15 +64,14 @@ private:
 	UPROPERTY(EditAnywhere, Category=Workbench)
 	UStaticMeshComponent* OriginComponent;
 
+	UPROPERTY(EditAnywhere, Category=Workbench)
+	TSubclassOf<UUserWidget> DialogueWidgetClass;
+
+	UPROPERTY()
+	UConfirmDialgueWidget* ConfirmationDialogueWidget;
+	
 	UPROPERTY()
 	class UWorkbenchWidget* WorkbenchWidget;
-
-	int CurrentSelectedMeshIndex;
-	uint32 bIsPlayerIn:1;
-
-	void ToggleUI();
-	void SelectConstructMesh();
-
 	
 	UPROPERTY()
 	class ABlueprintActor* CurrentBlueprintActor;
@@ -80,13 +80,25 @@ private:
 	TArray<AActor *> PlacedConstructionActors;
 
 	UPROPERTY()
+	TArray<AActor *> SelectedConstructionActors;
+
+	UPROPERTY()
 	UStaticMesh* CurrentConstructMesh;
+
+	int CurrentSelectedMeshIndex;
+	uint32 bIsPlayerIn:1;
+
+	void ToggleUI();
+	void SwitchConstructMesh();
 
 	UFUNCTION()
 	void OnBtnPlaceClicked();
 
 	UFUNCTION()
 	void OnBtnSaveClicked();
+
+	UFUNCTION()
+	void OnBtnDeleteSelectedClicked();
 
 	UFUNCTION()
 	void OnLeftMouseClicked();
@@ -105,4 +117,10 @@ private:
 
 	UFUNCTION()
 	void OnConstructionObjectPlaced(class UConstructionActorComponent* InConstructionComponent, AActor* InNewActor);
+
+	UFUNCTION()
+	void OnConstructionActorStatusChanged(AActor* InActor, bool IsSelected);
+
+	UFUNCTION()
+	void OnConfirmationDialogueClosed(bool IsConfirmed);
 };

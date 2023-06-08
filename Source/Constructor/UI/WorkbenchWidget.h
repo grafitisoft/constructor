@@ -19,5 +19,8 @@ public:
 	class UButton* BtnPlace;
 
 	UPROPERTY(meta=(BindWidget))
-	class UButton* BtnSaveBlueprint;
+	UButton* BtnSaveBlueprint;
+
+	UPROPERTY(meta=(BindWidget))
+	UButton* BtnDeleteSelected;
 };

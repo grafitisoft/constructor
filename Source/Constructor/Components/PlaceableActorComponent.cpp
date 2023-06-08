@@ -37,8 +37,6 @@ void UPlaceableActorComponent::CheckValidPlacement()
 		TArray<AActor*> OutOverlappingActors;
 		Owner->GetOverlappingActors(OutOverlappingActors, AActor::StaticClass());
 
-		GEngine->AddOnScreenDebugMessage(1, 10, FColor::Blue, FString::Printf(TEXT("Overlapped:%d"), OutOverlappingActors.Num()));
-
 		bIsPlacementValid = OutOverlappingActors.Num() == 0;
 
 		TArray<UStaticMeshComponent*> OutMeshComponents;

@@ -7,6 +7,8 @@
 #include "ClickableActorComponent.generated.h"
 
 
+DECLARE_DYNAMIC_MULTICAST_DELEGATE_TwoParams(FActorSelectionStatusChangedDelegate, AActor*, InActor, bool, InStatus);
+
 UCLASS(ClassGroup=(Custom), meta=(BlueprintSpawnableComponent))
 class CONSTRUCTOR_API UClickableActorComponent : public UActorComponent
 {
@@ -15,6 +17,9 @@ class CONSTRUCTOR_API UClickableActorComponent : public UActorComponent
 public:
 	// Sets default values for this component's properties
 	UClickableActorComponent();
+
+	UPROPERTY()
+	FActorSelectionStatusChangedDelegate SelectionStatusChangedHandle;
 
 protected:
 	// Called when the game starts

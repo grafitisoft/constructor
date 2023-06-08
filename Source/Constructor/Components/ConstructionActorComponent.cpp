@@ -165,8 +165,6 @@ void UConstructionActorComponent::Scale(bool bIsUp)
 		CurrentScale = ClampVector(CurrentScale, FVector(0.5, 0.5, 0.5), FVector(3, 3, 3));
 
 		PlaceableActor->SetActorScale3D(CurrentScale);
-
-		UE_LOG(LogConstructor, Log, TEXT("New scale:%s"), *CurrentScale.ToString());
 	}
 }
 
