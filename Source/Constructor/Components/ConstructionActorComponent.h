@@ -18,7 +18,7 @@ public:
 	UConstructionActorComponent();
 
 	UFUNCTION()
-	void UpdatePlacingConstructMesh(UStaticMesh* InNewMesh);
+	void UpdatePlacingConstructMesh(UStaticMesh* InNewMesh) const;
 	
 	UFUNCTION()
 	void BeginPlacement(UStaticMesh* InPlacingMesh, ECollisionChannel InCollisionChannel);
@@ -27,7 +27,16 @@ public:
 	void BeginActorPlacement(AActor* InPlacingActor, ECollisionChannel InCollisionChannel);
 
 	UFUNCTION()
+	void EndActorPlacement();
+
+	UFUNCTION()
 	void SpawnPlacedObject(UStaticMesh* InStaticMesh);
+
+	UFUNCTION()
+	void Rotate();
+
+	UFUNCTION()
+	void Scale(bool bIsUp);
 
 	UPROPERTY()
 	FConstructionObjectPlacedDelegate OnConstructionObjectPlacedHandle;
@@ -47,6 +56,12 @@ private:
 	UPROPERTY(EditAnywhere, Category=Constructor)
 	UMaterialInterface* InvalidPlacementMaterial;
 
+	UPROPERTY(EditAnywhere, Category=Workbench)
+	int RotationSpeed;
+
+	UPROPERTY(EditAnywhere, Category=Workbench)
+	float ScaleStep;
+
 	uint32 bIsInPlacementMode;
 	ECollisionChannel PlacingGroundTraceChannel;
 
@@ -58,4 +73,5 @@ private:
 	
 	UFUNCTION()
 	void UpdatePlacement() const;
+
 };

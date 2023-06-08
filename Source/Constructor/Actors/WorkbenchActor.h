@@ -62,16 +62,17 @@ protected:
 private:
 	UPROPERTY(EditAnywhere, Category=Workbench)
 	UStaticMeshComponent* OriginComponent;
-	
+
 	UPROPERTY()
 	class UWorkbenchWidget* WorkbenchWidget;
 
 	int CurrentSelectedMeshIndex;
 	uint32 bIsPlayerIn:1;
 
-	void ToggleUI() const;
+	void ToggleUI();
 	void SelectConstructMesh();
 
+	
 	UPROPERTY()
 	class ABlueprintActor* CurrentBlueprintActor;
 	
@@ -91,7 +92,16 @@ private:
 	void OnLeftMouseClicked();
 	
 	UFUNCTION()
-	void OnMouseWheelScrolled(float InAxisValue);
+	void OnSelectNextPiece();
+
+	UFUNCTION()
+	void OnSelectPreviousPiece();
+
+	UFUNCTION()
+	void OnRotate(float InAxisValue);
+
+	UFUNCTION()
+	void OnScale(float InAxisValue);
 
 	UFUNCTION()
 	void OnConstructionObjectPlaced(class UConstructionActorComponent* InConstructionComponent, AActor* InNewActor);

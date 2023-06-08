@@ -35,5 +35,8 @@ private:
 	void OnWorkbenchActivationStatusChanged(AWorkbenchActor* InWorkbench, bool bIsActive);
 
 	UFUNCTION()
-	void Place();
+	void BeginBlueprintPlace();
+
+	UFUNCTION()
+	void EndBlueprintPlace();
 };

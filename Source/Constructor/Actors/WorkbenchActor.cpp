@@ -59,7 +59,11 @@ void AWorkbenchActor::BeginPlay()
 		EnableInput(PlayerController);
 
 		InputComponent->BindAction(FName("LeftClick"), IE_Pressed, this, &ThisClass::OnLeftMouseClicked);
-		InputComponent->BindAxis(FName("SwitchPrevNextMesh"), this, &ThisClass::OnMouseWheelScrolled);
+		InputComponent->BindAction(FName("NextPiece"), IE_Pressed, this, &ThisClass::OnSelectNextPiece);
+		InputComponent->BindAction(FName("PrevPiece"), IE_Pressed, this, &ThisClass::OnSelectPreviousPiece);
+
+		InputComponent->BindAxis(FName("RotatePiece"), this, &ThisClass::OnRotate);
+		InputComponent->BindAxis(FName("ScalePiece"), this, &ThisClass::OnScale);
 	}
 
 	SelectConstructMesh();
@@ -90,7 +94,7 @@ void AWorkbenchActor::OnOverlapEnded(UPrimitiveComponent* OverlappedComponent, A
 	}
 }
 
-void AWorkbenchActor::ToggleUI() const
+void AWorkbenchActor::ToggleUI()
 {
 	if (WorkbenchWidget)
 	{
@@ -98,14 +102,13 @@ void AWorkbenchActor::ToggleUI() const
 		{
 			WorkbenchWidget->SetVisibility(ESlateVisibility::SelfHitTestInvisible);
 
-			const auto PlayerController = UGameplayStatics::GetPlayerController(GetWorld(), 0);
-			PlayerController->SetInputMode(FInputModeGameAndUI());
+			EnableInput(GetWorld()->GetFirstPlayerController());
 		}
 		else
 		{
 			WorkbenchWidget->SetVisibility(ESlateVisibility::Hidden);
-			const auto PlayerController = UGameplayStatics::GetPlayerController(GetWorld(), 0);
-			PlayerController->SetInputMode(FInputModeGameOnly());
+
+			DisableInput(GetWorld()->GetFirstPlayerController());
 		}
 	}
 }
@@ -135,37 +138,29 @@ void AWorkbenchActor::OnBtnPlaceClicked()
 
 void AWorkbenchActor::OnBtnSaveClicked()
 {
-	
-	/*
-	CurrentBlueprintActor = Cast<ABlueprintActor> (GetWorld()->SpawnActor(ABlueprintActor::StaticClass()));
-	CurrentBlueprintActor->SetActorLocation(GetActorLocation());
-
-	for (const auto Actor : PlacedConstructionActors)
-	{
-		const auto RelativeLocation = Actor->GetActorLocation() - OriginComponent->GetComponentLocation();
-		CurrentBlueprintActor->AddConstructorActor(Actor, RelativeLocation);
-		Actor->Destroy();
-	}
-	*/
-
-	
 	for (const auto Actor : PlacedConstructionActors)
 	{
 		const auto NewBlueprintObject = NewObject<UBlueprintObject>();
 
-		NewBlueprintObject->ComponentActorClass = Actor->GetClass();
+		if (auto MeshComp = Actor->FindComponentByClass<UStaticMeshComponent>())
+		{
+			const auto StaticMesh = MeshComp->GetStaticMesh();
+			NewBlueprintObject->MeshPath = StaticMesh->GetPathName();
+		}
 		
 		auto RelativeLocation = Actor->GetActorLocation() - OriginComponent->GetComponentLocation();
 		RelativeLocation.Z = 0;
 		NewBlueprintObject->LocalPosition = RelativeLocation;
 
-		NewBlueprintObject->Scale = Actor->GetActorScale();
-		NewBlueprintObject->Rotation = Actor->GetActorRotation().Vector();
+		NewBlueprintObject->Scale = Actor->GetActorScale3D();
+		NewBlueprintObject->Rotation = Actor->GetActorRotation().Euler();
 		
 		BlueprintManagerComponent->AddBlueprintObject(NewBlueprintObject);
 
 		Actor->Destroy();
 	}
+
+	PlacedConstructionActors.Empty();
 }
 
 void AWorkbenchActor::OnLeftMouseClicked()
@@ -176,33 +171,56 @@ void AWorkbenchActor::OnLeftMouseClicked()
 	}
 }
 
-void AWorkbenchActor::OnMouseWheelScrolled(float InAxisValue)
+void AWorkbenchActor::OnSelectNextPiece()
 {
 	if (!bIsPlayerIn)
 		return;
 
-	if (InAxisValue == 0)
-		return;
-	
-	if (InAxisValue > 0)
+	CurrentSelectedMeshIndex++;
+	if (CurrentSelectedMeshIndex == ConstructionParts.Num())
 	{
-		CurrentSelectedMeshIndex++;
-		if (CurrentSelectedMeshIndex == ConstructionParts.Num())
-		{
-			CurrentSelectedMeshIndex = 0;
-		}
+		CurrentSelectedMeshIndex = 0;
 	}
-	else
+
+	SelectConstructMesh();
+}
+
+void AWorkbenchActor::OnSelectPreviousPiece()
+{
+	if (!bIsPlayerIn)
+		return;
+
+	CurrentSelectedMeshIndex--;
+	if (CurrentSelectedMeshIndex < 0)
 	{
-		CurrentSelectedMeshIndex--;
-		if (CurrentSelectedMeshIndex < 0)
-		{
-			CurrentSelectedMeshIndex = ConstructionParts.Num() - 1;
-		}
+		CurrentSelectedMeshIndex = ConstructionParts.Num() - 1;
 	}
 	
 	SelectConstructMesh();
 }
+
+void AWorkbenchActor::OnRotate(float InAxisValue)
+{
+	if (InAxisValue == 0)
+		return;
+	
+	if (IsValid(ConstructorComponent))
+	{
+		ConstructorComponent->Rotate();
+	}
+}
+
+void AWorkbenchActor::OnScale(float InAxisValue)
+{
+	if (InAxisValue == 0)
+		return;
+	
+	if (IsValid(ConstructorComponent))
+	{
+		ConstructorComponent->Scale(InAxisValue > 0 );
+	}
+}
+
 
 void AWorkbenchActor::OnConstructionObjectPlaced(UConstructionActorComponent* InConstructionComponent, AActor* InNewActor)
 {

@@ -22,7 +22,8 @@ void AConstructorPlayerController::BeginPlay()
 {
 	Super::BeginPlay();
 
-	InputComponent->BindAction(FName("Place"), IE_Pressed, this, &ThisClass::Place);
+	InputComponent->BindAction(FName("Place"), IE_Pressed, this, &ThisClass::BeginBlueprintPlace);
+	InputComponent->BindAction(FName("LeftClick"), IE_Pressed, this, &ThisClass::EndBlueprintPlace);
 
 	TArray<AActor*> OutActors;
 	UGameplayStatics::GetAllActorsOfClass(GetWorld(), AWorkbenchActor::StaticClass(), OutActors);
@@ -53,7 +54,7 @@ void AConstructorPlayerController::OnWorkbenchActivationStatusChanged(AWorkbench
 */
 }
 
-void AConstructorPlayerController::Place()
+void AConstructorPlayerController::BeginBlueprintPlace()
 {
 	if (IsValid(CurrentWorkbench))
 	{
@@ -64,5 +65,13 @@ void AConstructorPlayerController::Place()
 				ConstructionComp->BeginActorPlacement(NewBlueprintActor, ECC_GameTraceChannel1);
 			}
 		}
+	}
+}
+
+void AConstructorPlayerController::EndBlueprintPlace()
+{
+	if (IsValid(ConstructionComp))
+	{
+		ConstructionComp->EndActorPlacement();
 	}
 }

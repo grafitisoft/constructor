@@ -48,34 +48,23 @@ AActor* UBlueprintManagerActorComponent::GetBlueprint() const
 		{
 			const auto NewBlueprintComponentActor = GetWorld()->SpawnActor(BlueprintComponentActorClass);
 			NewBlueprintComponentActor->SetActorRelativeLocation(BlueprintObject->LocalPosition);
-			NewBlueprintComponentActor->AttachToActor(BlueprintActor, FAttachmentTransformRules::KeepRelativeTransform);
-			
-			/*
-			const auto ChildActorComp = NewObject<UChildActorComponent>(BlueprintActor);
-			
-			ChildActorComp->bEditableWhenInherited = true;
-			ChildActorComp->SetMobility(EComponentMobility::Movable);
-			ChildActorComp->RegisterComponent();
-			ChildActorComp->SetChildActorClass(BlueprintComponentActorClass);
+			NewBlueprintComponentActor->SetActorRotation(FRotator::MakeFromEuler(BlueprintObject->Rotation)); // ????
+			NewBlueprintComponentActor->SetActorScale3D(BlueprintObject->Scale);
 
-			const TFunction<void(AActor*)> CustomizerFunc = [BlueprintObject](AActor* InActor)
+			if (const auto MeshComp = NewBlueprintComponentActor->FindComponentByClass<UStaticMeshComponent>())
 			{
-				UE_LOG(LogConstructor, Log, TEXT("Relative location:%s"), *BlueprintObject->LocalPosition.ToString());
-				InActor->SetActorRelativeLocation(BlueprintObject->LocalPosition);
-			};
-
-			ChildActorComp->CreateChildActor(CustomizerFunc);
-			*/
+				//if (const auto StaticMesh = LoadObject<UStaticMesh>(nullptr, TEXT("/Game/StarterContent/Shapes/Shape_NarrowCapsule.Shape_NarrowCapsule")))
+				if (const auto StaticMesh = LoadObject<UStaticMesh>(nullptr, *BlueprintObject->MeshPath))
+				{
+					MeshComp->SetStaticMesh(StaticMesh);
+				}
+			}
 			
+			NewBlueprintComponentActor->AttachToActor(BlueprintActor, FAttachmentTransformRules::KeepRelativeTransform);
 		}
 
 		return BlueprintActor;
 	}
 
 	return nullptr;
-}
-
-void UBlueprintManagerActorComponent::ChildActorCreatedCallback(AActor* InActor)
-{
-	
 }

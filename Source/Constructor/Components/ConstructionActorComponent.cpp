@@ -5,23 +5,25 @@
 
 #include "ClickableActorComponent.h"
 #include "PlaceableActorComponent.h"
+#include "Constructor/Constructor.h"
 
 
 // Sets default values for this component's properties
 UConstructionActorComponent::UConstructionActorComponent()
 {
 	PrimaryComponentTick.bCanEverTick = true;
+
+	RotationSpeed = 5;
+	ScaleStep = 0.05;
 }
 
 // Called when the game starts
 void UConstructionActorComponent::BeginPlay()
 {
 	Super::BeginPlay();
-
-	// ...
 }
 
-void UConstructionActorComponent::UpdatePlacingConstructMesh(UStaticMesh* InNewMesh)
+void UConstructionActorComponent::UpdatePlacingConstructMesh(UStaticMesh* InNewMesh) const
 {
 	if (bIsInPlacementMode && PlaceableActor)
 	{
@@ -49,7 +51,7 @@ void UConstructionActorComponent::BeginActorPlacement(AActor* InPlacingActor, EC
 		return;
 
 	bIsInPlacementMode = true;
-	
+
 	PlacingGroundTraceChannel = InCollisionChannel;
 
 	PlaceableActor = InPlacingActor;
@@ -77,16 +79,25 @@ void UConstructionActorComponent::BeginPlacement(UStaticMesh* InPlaceingMensh, E
 		{
 			MeshComp->SetStaticMesh(InPlaceingMensh);
 		}
-		
+
 		const auto PlaceableActorComponent = Cast<UPlaceableActorComponent>(
 			PlaceableActor->AddComponentByClass(UPlaceableActorComponent::StaticClass(), false, FTransform::Identity, false));
 		PlaceableActorComponent->SetMaterials(PlacementMaterial, InvalidPlacementMaterial);
-		
+
 		if (const auto ClickableComponent = PlaceableActor->FindComponentByClass<UClickableActorComponent>())
 		{
 			ClickableComponent->DestroyComponent();
 		}
 	}
+}
+
+
+void UConstructionActorComponent::EndActorPlacement()
+{
+	if (!bIsInPlacementMode)
+		return;
+
+	bIsInPlacementMode = false;
 }
 
 void UConstructionActorComponent::EndPlacement()
@@ -122,6 +133,43 @@ void UConstructionActorComponent::UpdatePlacement() const
 	}
 }
 
+void UConstructionActorComponent::Rotate()
+{
+	if (bIsInPlacementMode && PlaceableActor)
+	{
+		const FRotator Rotation = PlaceableActor->GetActorRotation();
+		FRotator YawRotation(0, Rotation.Yaw, 0);
+
+		YawRotation.Yaw += (RotationSpeed);
+		YawRotation.Yaw = FMath::ClampAngle(YawRotation.Yaw, 0, 359);
+
+		PlaceableActor->SetActorRotation(YawRotation);
+	}
+}
+
+void UConstructionActorComponent::Scale(bool bIsUp)
+{
+	if (bIsInPlacementMode && PlaceableActor)
+	{
+		auto CurrentScale = PlaceableActor->GetActorScale3D();
+
+		if (bIsUp)
+		{
+			CurrentScale = FVector(CurrentScale.X + ScaleStep, CurrentScale.Y + ScaleStep, CurrentScale.Z + ScaleStep);
+		}
+		else
+		{
+			CurrentScale = FVector(CurrentScale.X - ScaleStep, CurrentScale.Y - ScaleStep, CurrentScale.Z - ScaleStep);
+		}
+		
+		CurrentScale = ClampVector(CurrentScale, FVector(0.5, 0.5, 0.5), FVector(3, 3, 3));
+
+		PlaceableActor->SetActorScale3D(CurrentScale);
+
+		UE_LOG(LogConstructor, Log, TEXT("New scale:%s"), *CurrentScale.ToString());
+	}
+}
+
 void UConstructionActorComponent::SpawnPlacedObject(UStaticMesh* InStaticMesh)
 {
 	if (bIsInPlacementMode && PlaceableActor)
@@ -133,18 +181,21 @@ void UConstructionActorComponent::SpawnPlacedObject(UStaticMesh* InStaticMesh)
 			{
 				const auto Location = PlaceableActor->GetActorLocation();
 				const auto Rotation = PlaceableActor->GetActorRotation();
+				const auto Scale = PlaceableActor->GetActorScale3D();
 
 				FActorSpawnParameters SpawnParams;
 				SpawnParams.SpawnCollisionHandlingOverride = ESpawnActorCollisionHandlingMethod::AlwaysSpawn;
 
 				const auto NewActor = GetWorld()->SpawnActor(PlaceableActorClass, &Location, &Rotation, SpawnParams);
+				NewActor->SetActorScale3D(Scale);
+				
 				if (const auto MeshComp = NewActor->FindComponentByClass<UStaticMeshComponent>())
 				{
 					MeshComp->SetStaticMesh(InStaticMesh);
 				}
 
 				OnConstructionObjectPlacedHandle.Broadcast(this, NewActor);
-				
+
 				EndPlacement();
 			}
 		}

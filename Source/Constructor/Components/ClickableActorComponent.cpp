@@ -9,11 +9,6 @@
 // Sets default values for this component's properties
 UClickableActorComponent::UClickableActorComponent()
 {
-	// Set this component to be initialized when the game starts, and to be ticked every frame.  You can turn these features
-	// off to improve performance if you don't need them.
-	PrimaryComponentTick.bCanEverTick = true;
-
-	// ...
 	bIsSelected = false;
 }
 
@@ -23,19 +18,15 @@ void UClickableActorComponent::BeginPlay()
 {
 	Super::BeginPlay();
 
+	if (const auto MeshComponent = GetOwner()->FindComponentByClass<UStaticMeshComponent>())
+	{
+		DeSelectedMaterial = MeshComponent->GetMaterial(0);
+	}
+	
 	// ...
 	GetOwner()->OnClicked.AddDynamic(this, &ThisClass::OnClicked);
 	GetOwner()->OnBeginCursorOver.AddDynamic(this, &ThisClass::OnCursorOver);
 	GetOwner()->OnEndCursorOver.AddDynamic(this, &ThisClass::OnCursorExit);
-}
-
-
-// Called every frame
-void UClickableActorComponent::TickComponent(float DeltaTime, ELevelTick TickType, FActorComponentTickFunction* ThisTickFunction)
-{
-	Super::TickComponent(DeltaTime, TickType, ThisTickFunction);
-
-	// ...
 }
 
 void UClickableActorComponent::OnClicked(AActor* InActorClicked, FKey InButtonPressed)

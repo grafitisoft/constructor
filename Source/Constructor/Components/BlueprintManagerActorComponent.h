@@ -35,9 +35,6 @@ private:
 	UPROPERTY()
 	TSubclassOf<ABlueprintActor> BlueprintActorClass;
 	
-	UFUNCTION()
-	void ChildActorCreatedCallback(AActor* InActor);
-	
 	UPROPERTY()
 	TSubclassOf<AActor> BlueprintComponentActorClass;
 };

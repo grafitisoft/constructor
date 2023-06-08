@@ -19,7 +19,7 @@ public:
 	FString Name;
 
 	UPROPERTY()
-	TSubclassOf<AActor> ComponentActorClass;
+	FString MeshPath;
 
 	UPROPERTY()
 	FVector LocalPosition;
