@@ -21,6 +21,9 @@ public:
 	
 	UFUNCTION()
 	UStaticMesh* GetCurrentConstructMesh() const { return CurrentConstructMesh; }
+
+	UFUNCTION()
+	class UBlueprintManagerActorComponent* GetBlueprintManager() const { return BlueprintManagerComponent; }
 	
 protected:
 	// Called when the game starts or when spawned
@@ -34,6 +37,9 @@ protected:
 
 	UPROPERTY(EditAnywhere, Category=Workbench)
 	class UConstructionActorComponent* ConstructorComponent;
+
+	UPROPERTY(EditAnywhere, Category=Workbench)
+	class UBlueprintManagerActorComponent * BlueprintManagerComponent;
 
 	UPROPERTY(EditAnywhere, Category=Workbench)
 	TArray<UStaticMesh*> ConstructionParts;
@@ -54,6 +60,8 @@ protected:
 	                    int32 OtherBodyIndex);
 
 private:
+	UPROPERTY(EditAnywhere, Category=Workbench)
+	UStaticMeshComponent* OriginComponent;
 	
 	UPROPERTY()
 	class UWorkbenchWidget* WorkbenchWidget;
@@ -65,14 +73,26 @@ private:
 	void SelectConstructMesh();
 
 	UPROPERTY()
+	class ABlueprintActor* CurrentBlueprintActor;
+	
+	UPROPERTY()
+	TArray<AActor *> PlacedConstructionActors;
+
+	UPROPERTY()
 	UStaticMesh* CurrentConstructMesh;
 
 	UFUNCTION()
 	void OnBtnPlaceClicked();
 
 	UFUNCTION()
+	void OnBtnSaveClicked();
+
+	UFUNCTION()
 	void OnLeftMouseClicked();
 	
 	UFUNCTION()
 	void OnMouseWheelScrolled(float InAxisValue);
+
+	UFUNCTION()
+	void OnConstructionObjectPlaced(class UConstructionActorComponent* InConstructionComponent, AActor* InNewActor);
 };

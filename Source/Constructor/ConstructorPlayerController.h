@@ -26,11 +26,14 @@ public:
 
 private:
 	UPROPERTY(EditAnywhere, Category=ConstructorController)
-	class UConstructionActorComponent* ConstructionComp;
+	UConstructionActorComponent* ConstructionComp;
 	
 	UPROPERTY()
 	AWorkbenchActor* CurrentWorkbench;
 	
 	UFUNCTION()
 	void OnWorkbenchActivationStatusChanged(AWorkbenchActor* InWorkbench, bool bIsActive);
+
+	UFUNCTION()
+	void Place();
 };

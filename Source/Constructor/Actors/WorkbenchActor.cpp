@@ -3,12 +3,15 @@
 
 #include "WorkbenchActor.h"
 
+#include "BlueprintActor.h"
 #include "Components/BoxComponent.h"
 #include "Components/Button.h"
 #include "Components/WidgetComponent.h"
 #include "Constructor/Constructor.h"
 #include "Constructor/ConstructorCharacter.h"
+#include "Constructor/Components/BlueprintManagerActorComponent.h"
 #include "Constructor/Components/ConstructionActorComponent.h"
+#include "Constructor/Support/BlueprintObject.h"
 #include "Constructor/UI/WorkbenchWidget.h"
 #include "Kismet/GameplayStatics.h"
 
@@ -20,6 +23,10 @@ AWorkbenchActor::AWorkbenchActor(const FObjectInitializer& ObjectInitializer)
 	BoxColliderComponent = CreateDefaultSubobject<UBoxComponent>(TEXT("BoxCollider"));
 	WidgetComponent = CreateDefaultSubobject<UWidgetComponent>(TEXT("User Interface"));
 	ConstructorComponent = CreateDefaultSubobject<UConstructionActorComponent>(TEXT("Constructor"));
+	BlueprintManagerComponent = CreateDefaultSubobject<UBlueprintManagerActorComponent>(TEXT("Blueprint Manager"));
+	
+	OriginComponent = CreateDefaultSubobject<UStaticMeshComponent>("Origin");
+	OriginComponent->AttachToComponent(BoxColliderComponent,FAttachmentTransformRules::KeepRelativeTransform);
 	
 	bIsPlayerIn = false;
 	CurrentSelectedMeshIndex = 0;
@@ -37,10 +44,13 @@ void AWorkbenchActor::BeginPlay()
 		{
 			WorkbenchWidget->AddToViewport();
 			WorkbenchWidget->SetVisibility(ESlateVisibility::Hidden);
+			
 			WorkbenchWidget->BtnPlace->OnClicked.AddDynamic(this, &ThisClass::OnBtnPlaceClicked);
+			WorkbenchWidget->BtnSaveBlueprint->OnClicked.AddDynamic(this, &ThisClass::OnBtnSaveClicked);
 		}
 	}
 
+	ConstructorComponent->OnConstructionObjectPlacedHandle.AddDynamic(this, &ThisClass::OnConstructionObjectPlaced);
 	BoxColliderComponent->OnComponentBeginOverlap.AddDynamic(this, &ThisClass::OnOverlapped);
 	//BoxColliderComponent->OnComponentEndOverlap.AddDynamic(this, &ThisClass::OnOverlapEnded);
 
@@ -123,6 +133,41 @@ void AWorkbenchActor::OnBtnPlaceClicked()
 	}
 }
 
+void AWorkbenchActor::OnBtnSaveClicked()
+{
+	
+	/*
+	CurrentBlueprintActor = Cast<ABlueprintActor> (GetWorld()->SpawnActor(ABlueprintActor::StaticClass()));
+	CurrentBlueprintActor->SetActorLocation(GetActorLocation());
+
+	for (const auto Actor : PlacedConstructionActors)
+	{
+		const auto RelativeLocation = Actor->GetActorLocation() - OriginComponent->GetComponentLocation();
+		CurrentBlueprintActor->AddConstructorActor(Actor, RelativeLocation);
+		Actor->Destroy();
+	}
+	*/
+
+	
+	for (const auto Actor : PlacedConstructionActors)
+	{
+		const auto NewBlueprintObject = NewObject<UBlueprintObject>();
+
+		NewBlueprintObject->ComponentActorClass = Actor->GetClass();
+		
+		auto RelativeLocation = Actor->GetActorLocation() - OriginComponent->GetComponentLocation();
+		RelativeLocation.Z = 0;
+		NewBlueprintObject->LocalPosition = RelativeLocation;
+
+		NewBlueprintObject->Scale = Actor->GetActorScale();
+		NewBlueprintObject->Rotation = Actor->GetActorRotation().Vector();
+		
+		BlueprintManagerComponent->AddBlueprintObject(NewBlueprintObject);
+
+		Actor->Destroy();
+	}
+}
+
 void AWorkbenchActor::OnLeftMouseClicked()
 {
 	if (IsValid(ConstructorComponent) && IsValid(CurrentConstructMesh))
@@ -157,4 +202,18 @@ void AWorkbenchActor::OnMouseWheelScrolled(float InAxisValue)
 	}
 	
 	SelectConstructMesh();
+}
+
+void AWorkbenchActor::OnConstructionObjectPlaced(UConstructionActorComponent* InConstructionComponent, AActor* InNewActor)
+{
+	/*
+	if (IsValid(InNewActor))
+	{
+		if (IsValid(BlueprintManagerComponent))
+		{
+			BlueprintManagerComponent->AddBlueprintObject(InNewActor);
+		}
+	}
+*/
+	PlacedConstructionActors.Add(InNewActor);
 }

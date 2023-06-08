@@ -6,6 +6,7 @@
 #include "Components/ActorComponent.h"
 #include "ConstructionActorComponent.generated.h"
 
+DECLARE_DYNAMIC_MULTICAST_DELEGATE_TwoParams(FConstructionObjectPlacedDelegate, class UConstructionActorComponent*, InConstructionActor, AActor *, InNewActor);
 
 UCLASS(ClassGroup=(Custom), meta=(BlueprintSpawnableComponent))
 class CONSTRUCTOR_API UConstructionActorComponent : public UActorComponent
@@ -20,10 +21,16 @@ public:
 	void UpdatePlacingConstructMesh(UStaticMesh* InNewMesh);
 	
 	UFUNCTION()
-	void BeginPlacement(UStaticMesh* InPlaceingMensh, ECollisionChannel InCollisionChannel);
+	void BeginPlacement(UStaticMesh* InPlacingMesh, ECollisionChannel InCollisionChannel);
+
+	UFUNCTION()
+	void BeginActorPlacement(AActor* InPlacingActor, ECollisionChannel InCollisionChannel);
 
 	UFUNCTION()
 	void SpawnPlacedObject(UStaticMesh* InStaticMesh);
+
+	UPROPERTY()
+	FConstructionObjectPlacedDelegate OnConstructionObjectPlacedHandle;
 	
 protected:
 	// Called when the game starts

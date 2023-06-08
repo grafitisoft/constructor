@@ -17,4 +17,7 @@ class CONSTRUCTOR_API UWorkbenchWidget : public UUserWidget
 public:
 	UPROPERTY(meta=(BindWidget))
 	class UButton* BtnPlace;
+
+	UPROPERTY(meta=(BindWidget))
+	class UButton* BtnSaveBlueprint;
 };

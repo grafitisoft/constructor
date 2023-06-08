@@ -43,6 +43,18 @@ void UConstructionActorComponent::TickComponent(float DeltaTime, ELevelTick Tick
 	}
 }
 
+void UConstructionActorComponent::BeginActorPlacement(AActor* InPlacingActor, ECollisionChannel InCollisionChannel)
+{
+	if (bIsInPlacementMode)
+		return;
+
+	bIsInPlacementMode = true;
+	
+	PlacingGroundTraceChannel = InCollisionChannel;
+
+	PlaceableActor = InPlacingActor;
+}
+
 void UConstructionActorComponent::BeginPlacement(UStaticMesh* InPlaceingMensh, ECollisionChannel InCollisionChannel)
 {
 	if (bIsInPlacementMode)
@@ -69,8 +81,7 @@ void UConstructionActorComponent::BeginPlacement(UStaticMesh* InPlaceingMensh, E
 		const auto PlaceableActorComponent = Cast<UPlaceableActorComponent>(
 			PlaceableActor->AddComponentByClass(UPlaceableActorComponent::StaticClass(), false, FTransform::Identity, false));
 		PlaceableActorComponent->SetMaterials(PlacementMaterial, InvalidPlacementMaterial);
-
-
+		
 		if (const auto ClickableComponent = PlaceableActor->FindComponentByClass<UClickableActorComponent>())
 		{
 			ClickableComponent->DestroyComponent();
@@ -129,10 +140,11 @@ void UConstructionActorComponent::SpawnPlacedObject(UStaticMesh* InStaticMesh)
 				const auto NewActor = GetWorld()->SpawnActor(PlaceableActorClass, &Location, &Rotation, SpawnParams);
 				if (const auto MeshComp = NewActor->FindComponentByClass<UStaticMeshComponent>())
 				{
-					//MeshComp->SetStaticMesh(CurrentWorkbench->GetCurrentConstructMesh());
 					MeshComp->SetStaticMesh(InStaticMesh);
 				}
 
+				OnConstructionObjectPlacedHandle.Broadcast(this, NewActor);
+				
 				EndPlacement();
 			}
 		}
