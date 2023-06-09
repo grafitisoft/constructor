@@ -4,6 +4,7 @@
 #include "BlueprintActor.h"
 
 #include "Constructor/Constructor.h"
+#include "Constructor/Components/PlaceableActorComponent.h"
 
 
 // Sets default values
@@ -11,25 +12,41 @@ ABlueprintActor::ABlueprintActor()
 {
 	DefaultRootComponent = CreateDefaultSubobject<USceneComponent>("Root");
 	RootComponent = DefaultRootComponent;
-	
 }
 
-// Called when the game starts or when spawned
-void ABlueprintActor::BeginPlay()
+void ABlueprintActor::AddBlueprintComponent(AActor* InComponentActor)
 {
-	Super::BeginPlay();
-}
-
-void ABlueprintActor::AddConstructorActor(AActor* InNewActor, const FVector& RelativeLocation)
-{
-	if (IsValid(InNewActor))
+	if (!BlueprintComponents.Contains(InComponentActor))
 	{
-		if (const auto NewConstructorMeshComp = InNewActor->FindComponentByClass<UStaticMeshComponent>())
-		{
-			const auto NewActorComp = AddComponentByClass(UStaticMeshComponent::StaticClass(), false, InNewActor->GetTransform(), false);
+		this->BlueprintComponents.Add(InComponentActor);
+	}
+}
 
-			Cast<UStaticMeshComponent>(NewActorComp)->SetStaticMesh(NewConstructorMeshComp->GetStaticMesh());
-			Cast<UStaticMeshComponent>(NewActorComp)->SetRelativeLocation(RelativeLocation);
+bool ABlueprintActor::IsPlacementValid()
+{
+	bool bIsValid = true;
+
+	for(const auto ComponentActor : BlueprintComponents )
+	{
+		if (const auto PlaceableComponent = ComponentActor->FindComponentByClass<UPlaceableActorComponent>())
+		{
+			if (!PlaceableComponent->IsPlacementValid())
+			{
+				bIsValid = false;
+				break;
+			}
 		}
 	}
+	
+	return bIsValid;
+}
+
+void ABlueprintActor::Destroyed()
+{
+	for(const auto ComponentActor : BlueprintComponents)
+	{
+		ComponentActor->Destroy();
+	}
+	
+	Super::Destroyed();
 }

@@ -15,16 +15,22 @@ public:
 	// Sets default values for this actor's properties
 	ABlueprintActor();
 
-protected:
-	// Called when the game starts or when spawned
-	virtual void BeginPlay() override;
+	UFUNCTION()
+	void AddBlueprintComponent(AActor *InComponentActor);
 
-	
-
-public:
-	UPROPERTY(EditAnywhere)
-	USceneComponent* DefaultRootComponent;
+	UFUNCTION()
+	bool IsPlacementValid();
 	
 	UFUNCTION()
-	void AddConstructorActor(AActor* InNewActor, const FVector& RelativeLocation);
+	FORCEINLINE TArray<AActor *> GetComponentActors() const { return BlueprintComponents; }
+	
+protected:
+	virtual void Destroyed() override;
+
+private:
+	UPROPERTY(EditAnywhere)
+	USceneComponent* DefaultRootComponent;
+
+	UPROPERTY()
+	TArray<AActor *> BlueprintComponents;
 };

@@ -10,6 +10,18 @@
 class ABlueprintActor;
 class UBlueprintObject;
 
+USTRUCT()
+struct FBlueprintData
+{
+	GENERATED_BODY()
+
+	UPROPERTY()
+	FString BPName;
+
+	UPROPERTY()
+	TArray<UBlueprintObject *> Components;
+};
+
 UCLASS(ClassGroup=(Custom), meta=(BlueprintSpawnableComponent))
 class CONSTRUCTOR_API UBlueprintManagerActorComponent : public UActorComponent
 {
@@ -19,18 +31,18 @@ public:
 	// Sets default values for this component's properties
 	UBlueprintManagerActorComponent();
 
-protected:
-	// Called when the game starts
-	virtual void BeginPlay() override;
-
-public:
-	void AddBlueprintObject(UBlueprintObject* InBlueprintObject);
+	UFUNCTION()
+	void NewBlueprint(FString InName, TArray<AActor*> InComponents, const FVector& InOriginLocation);
+	
+	UFUNCTION()
+	ABlueprintActor* GetBlueprint(const FString& InBPName) const;
 
 	UFUNCTION()
-	AActor* GetBlueprint() const;
+	TArray<FBlueprintData> GetBlueprints() const;
 
 private:
-	TArray<class UBlueprintObject*> Blueprint;
+	UPROPERTY()
+	TMap<FString, FBlueprintData> Blueprints;
 
 	UPROPERTY()
 	TSubclassOf<ABlueprintActor> BlueprintActorClass;

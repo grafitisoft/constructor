@@ -22,11 +22,26 @@ void UPlaceableActorComponent::BeginPlay()
 	GetOwner()->OnActorEndOverlap.AddDynamic(this, &ThisClass::OnOverlappedActor); 
 }
 
+void UPlaceableActorComponent::DestroyComponent(bool bPromoteChildren)
+{
+	if (const auto MeshComp = GetOwner()->FindComponentByClass<UStaticMeshComponent>())
+	{
+		MeshComp->SetMaterial(0, InitialOwnerMaterial);
+	}
+
+	Super::DestroyComponent(bPromoteChildren);
+}
+
 void UPlaceableActorComponent::SetMaterials(UMaterialInterface* InValidMaterial, UMaterialInterface* InInvalidMaterial)
 {
 	PlacementMaterial = InValidMaterial;
 	InvalidPlacementMaterial = InInvalidMaterial;
 
+	if (const auto MeshComp = GetOwner()->FindComponentByClass<UStaticMeshComponent>())
+	{
+		InitialOwnerMaterial = MeshComp->GetMaterial(0);
+	}
+	
 	CheckValidPlacement();
 }
 

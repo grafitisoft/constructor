@@ -15,6 +15,8 @@ AConstructorPlayerController::AConstructorPlayerController()
 	PrimaryActorTick.bCanEverTick = true;
 
 	ConstructionComp = CreateDefaultSubobject<UConstructionActorComponent>("Constructor");
+
+	bIsPlacingBlueprint = false;
 }
 
 // Called when the game starts or when spawned
@@ -24,6 +26,8 @@ void AConstructorPlayerController::BeginPlay()
 
 	InputComponent->BindAction(FName("Place"), IE_Pressed, this, &ThisClass::BeginBlueprintPlace);
 	InputComponent->BindAction(FName("LeftClick"), IE_Pressed, this, &ThisClass::EndBlueprintPlace);
+
+	InputComponent->BindAxis(FName("SwitchBlueprint"), this, &ThisClass::SwitchPlacingBlueprint);
 
 	TArray<AActor*> OutActors;
 	UGameplayStatics::GetAllActorsOfClass(GetWorld(), AWorkbenchActor::StaticClass(), OutActors);
@@ -60,9 +64,15 @@ void AConstructorPlayerController::BeginBlueprintPlace()
 	{
 		if (const auto BlueprintManager = CurrentWorkbench->GetBlueprintManager())
 		{
-			if (const auto NewBlueprintActor = BlueprintManager->GetBlueprint())
+			const auto Blueprints = BlueprintManager->GetBlueprints();
+			if (Blueprints.Num() > 0)
 			{
-				ConstructionComp->BeginActorPlacement(NewBlueprintActor, ECC_GameTraceChannel1);
+				const auto Blueprint = Blueprints[0];
+				if (const auto NewBlueprintActor = BlueprintManager->GetBlueprint(Blueprint.BPName))
+				{
+					ConstructionComp->BeginBlueprintPlacement(NewBlueprintActor, ECC_GameTraceChannel1);
+					bIsPlacingBlueprint = true;
+				}
 			}
 		}
 	}
@@ -72,6 +82,51 @@ void AConstructorPlayerController::EndBlueprintPlace()
 {
 	if (IsValid(ConstructionComp))
 	{
-		ConstructionComp->EndActorPlacement();
+		if (ConstructionComp->EndBlueprintPlacement())
+		{
+			bIsPlacingBlueprint = false;
+		}
+	}
+}
+
+void AConstructorPlayerController::SwitchPlacingBlueprint(float InAxisValue)
+{
+	if (InAxisValue == 0)
+		return;
+
+	if (!bIsPlacingBlueprint)
+		return;
+
+	if (IsValid(CurrentWorkbench))
+	{
+		if (const auto BlueprintManagerComp = CurrentWorkbench->GetBlueprintManager())
+		{
+			const auto Blueprints = BlueprintManagerComp->GetBlueprints();
+
+			if (Blueprints.Num() > 0)
+			{
+				if (InAxisValue > 0)
+				{
+					CurrentBlueprintIndex++;
+					if (CurrentBlueprintIndex == Blueprints.Num())
+					{
+						CurrentBlueprintIndex = 0;
+					}
+				}
+				else
+				{
+					CurrentBlueprintIndex--;
+					if (CurrentBlueprintIndex < 0)
+					{
+						CurrentBlueprintIndex = Blueprints.Num() - 1;
+					}
+				}
+
+				const auto BPName = Blueprints[CurrentBlueprintIndex].BPName;
+				const auto BlueprintActor = BlueprintManagerComp->GetBlueprint(BPName);
+
+				ConstructionComp->SwitchPlacingBlueprint(BlueprintActor);
+			}
+		}
 	}
 }

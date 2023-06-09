@@ -12,4 +12,6 @@ AConstructorGameMode::AConstructorGameMode()
 	{
 		DefaultPawnClass = PlayerPawnBPClass.Class;
 	}
+
+	
 }

@@ -6,6 +6,7 @@
 #include "ClickableActorComponent.h"
 #include "PlaceableActorComponent.h"
 #include "Constructor/Constructor.h"
+#include "Constructor/Actors/BlueprintActor.h"
 
 
 // Sets default values for this component's properties
@@ -23,7 +24,7 @@ void UConstructionActorComponent::BeginPlay()
 	Super::BeginPlay();
 }
 
-void UConstructionActorComponent::UpdatePlacingConstructMesh(UStaticMesh* InNewMesh) const
+void UConstructionActorComponent::SwitchPlacingConstructMesh(UStaticMesh* InNewMesh) const
 {
 	if (bIsInPlacementMode && PlaceableActor)
 	{
@@ -31,6 +32,17 @@ void UConstructionActorComponent::UpdatePlacingConstructMesh(UStaticMesh* InNewM
 		{
 			MeshComponent->SetStaticMesh(InNewMesh);
 		}
+	}
+}
+
+void UConstructionActorComponent::SwitchPlacingBlueprint(ABlueprintActor* InNewActor)
+{
+	if (bIsInPlacementMode && PlaceableActor)
+	{
+		InitializeBlueprintForPlacement(InNewActor);
+
+		PlaceableActor->Destroy();
+		PlaceableActor = Cast<AActor>(InNewActor);
 	}
 }
 
@@ -45,7 +57,7 @@ void UConstructionActorComponent::TickComponent(float DeltaTime, ELevelTick Tick
 	}
 }
 
-void UConstructionActorComponent::BeginActorPlacement(AActor* InPlacingActor, ECollisionChannel InCollisionChannel)
+void UConstructionActorComponent::BeginBlueprintPlacement(ABlueprintActor* InPlacingActor, ECollisionChannel InCollisionChannel)
 {
 	if (bIsInPlacementMode)
 		return;
@@ -53,11 +65,13 @@ void UConstructionActorComponent::BeginActorPlacement(AActor* InPlacingActor, EC
 	bIsInPlacementMode = true;
 
 	PlacingGroundTraceChannel = InCollisionChannel;
-
-	PlaceableActor = InPlacingActor;
+	
+	InitializeBlueprintForPlacement(InPlacingActor);
+	
+	PlaceableActor = Cast<AActor>(InPlacingActor);
 }
 
-void UConstructionActorComponent::BeginPlacement(UStaticMesh* InPlaceingMensh, ECollisionChannel InCollisionChannel)
+void UConstructionActorComponent::BeginPlacement(UStaticMesh* InPlacingMesh, ECollisionChannel InCollisionChannel)
 {
 	if (bIsInPlacementMode)
 		return;
@@ -77,7 +91,7 @@ void UConstructionActorComponent::BeginPlacement(UStaticMesh* InPlaceingMensh, E
 
 		if (const auto MeshComp = PlaceableActor->FindComponentByClass<UStaticMeshComponent>())
 		{
-			MeshComp->SetStaticMesh(InPlaceingMensh);
+			MeshComp->SetStaticMesh(InPlacingMesh);
 		}
 
 		const auto PlaceableActorComponent = Cast<UPlaceableActorComponent>(
@@ -91,13 +105,32 @@ void UConstructionActorComponent::BeginPlacement(UStaticMesh* InPlaceingMensh, E
 	}
 }
 
-
-void UConstructionActorComponent::EndActorPlacement()
+bool UConstructionActorComponent::EndBlueprintPlacement()
 {
 	if (!bIsInPlacementMode)
-		return;
+		return false;
 
-	bIsInPlacementMode = false;
+	if (IsValid(PlaceableActor))
+	{
+		if (const auto Blueprint = Cast<ABlueprintActor>(PlaceableActor))
+		{
+			if (Blueprint->IsPlacementValid())
+			{
+				const auto Components = Blueprint->GetComponentActors();
+				for(const auto ComponentActor : Components)
+				{
+					if (const auto PlaceableComp = ComponentActor->FindComponentByClass<UPlaceableActorComponent>())
+					{
+						PlaceableComp->DestroyComponent();
+					}
+				}
+				
+				bIsInPlacementMode = false;
+			}
+		}
+	}
+
+	return !bIsInPlacementMode;
 }
 
 void UConstructionActorComponent::EndPlacement()
@@ -115,6 +148,9 @@ void UConstructionActorComponent::EndPlacement()
 
 void UConstructionActorComponent::UpdatePlacement() const
 {
+	if (!IsValid(PlaceableActor))
+		return;
+
 	if (const auto PlayerController = GetOwner()->GetWorld()->GetFirstPlayerController())
 	{
 		FVector WorldLocation;
@@ -130,6 +166,25 @@ void UConstructionActorComponent::UpdatePlacement() const
 		{
 			PlaceableActor->SetActorLocation(OutHit.Location);
 		}
+	}
+}
+
+void UConstructionActorComponent::InitializeBlueprintForPlacement(const ABlueprintActor* InBlueprint) const
+{
+	auto BlueprintComponents = InBlueprint->GetComponentActors();
+	for (const auto ComponentActor : BlueprintComponents)
+	{
+		/** Add placeable actor component for validation check */
+		const auto PlaceableActorComponent = Cast<UPlaceableActorComponent>(
+			ComponentActor->AddComponentByClass(UPlaceableActorComponent::StaticClass(), false, FTransform::Identity, false));
+
+		PlaceableActorComponent->SetMaterials(PlacementMaterial, InvalidPlacementMaterial);
+
+		if (const auto ClickableComponent = ComponentActor->FindComponentByClass<UClickableActorComponent>())
+		{
+			/** Remove selection if exist */
+			ClickableComponent->DestroyComponent();
+		}		
 	}
 }
 
@@ -161,7 +216,7 @@ void UConstructionActorComponent::Scale(bool bIsUp)
 		{
 			CurrentScale = FVector(CurrentScale.X - ScaleStep, CurrentScale.Y - ScaleStep, CurrentScale.Z - ScaleStep);
 		}
-		
+
 		CurrentScale = ClampVector(CurrentScale, FVector(0.5, 0.5, 0.5), FVector(3, 3, 3));
 
 		PlaceableActor->SetActorScale3D(CurrentScale);
@@ -186,7 +241,7 @@ void UConstructionActorComponent::SpawnPlacedObject(UStaticMesh* InStaticMesh)
 
 				const auto NewActor = GetWorld()->SpawnActor(PlaceableActorClass, &Location, &Rotation, SpawnParams);
 				NewActor->SetActorScale3D(Scale);
-				
+
 				if (const auto MeshComp = NewActor->FindComponentByClass<UStaticMeshComponent>())
 				{
 					MeshComp->SetStaticMesh(InStaticMesh);

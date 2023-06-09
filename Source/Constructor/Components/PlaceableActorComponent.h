@@ -16,9 +16,12 @@ public:
 	// Sets default values for this component's properties
 	UPlaceableActorComponent();
 
+	virtual void DestroyComponent(bool bPromoteChildren = false) override;
+
 protected:
 	// Called when the game starts
 	virtual void BeginPlay() override;
+	
 
 public:
 	UFUNCTION()
@@ -35,6 +38,9 @@ private:
 
 	UPROPERTY()
 	UMaterialInterface* InvalidPlacementMaterial;
+
+	UPROPERTY()
+	UMaterialInterface* InitialOwnerMaterial;
 
 	UFUNCTION()
 	void CheckValidPlacement();

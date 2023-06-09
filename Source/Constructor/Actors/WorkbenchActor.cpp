@@ -4,6 +4,7 @@
 #include "WorkbenchActor.h"
 
 #include "BlueprintActor.h"
+#include "Blueprint/WidgetBlueprintLibrary.h"
 #include "Components/BoxComponent.h"
 #include "Components/Button.h"
 #include "Components/TextBlock.h"
@@ -18,6 +19,7 @@
 #include "Constructor/UI/WorkbenchWidget.h"
 #include "Kismet/GameplayStatics.h"
 
+static int NameIndex = 1;
 
 // Sets default values
 AWorkbenchActor::AWorkbenchActor(const FObjectInitializer& ObjectInitializer)
@@ -27,10 +29,10 @@ AWorkbenchActor::AWorkbenchActor(const FObjectInitializer& ObjectInitializer)
 	WidgetComponent = CreateDefaultSubobject<UWidgetComponent>(TEXT("User Interface"));
 	ConstructorComponent = CreateDefaultSubobject<UConstructionActorComponent>(TEXT("Constructor"));
 	BlueprintManagerComponent = CreateDefaultSubobject<UBlueprintManagerActorComponent>(TEXT("Blueprint Manager"));
-	
+
 	OriginComponent = CreateDefaultSubobject<UStaticMeshComponent>("Origin");
-	OriginComponent->AttachToComponent(BoxColliderComponent,FAttachmentTransformRules::KeepRelativeTransform);
-	
+	OriginComponent->AttachToComponent(BoxColliderComponent, FAttachmentTransformRules::KeepRelativeTransform);
+
 	bIsPlayerIn = false;
 	CurrentSelectedMeshIndex = 0;
 }
@@ -47,7 +49,7 @@ void AWorkbenchActor::BeginPlay()
 		{
 			WorkbenchWidget->AddToViewport();
 			WorkbenchWidget->SetVisibility(ESlateVisibility::Hidden);
-			
+
 			WorkbenchWidget->BtnPlace->OnClicked.AddDynamic(this, &ThisClass::OnBtnPlaceClicked);
 			WorkbenchWidget->BtnSaveBlueprint->OnClicked.AddDynamic(this, &ThisClass::OnBtnSaveClicked);
 			WorkbenchWidget->BtnDeleteSelected->OnClicked.AddDynamic(this, &ThisClass::OnBtnDeleteSelectedClicked);
@@ -61,7 +63,7 @@ void AWorkbenchActor::BeginPlay()
 		ConfirmationDialogueWidget->AddToViewport();
 		ConfirmationDialogueWidget->SetVisibility(ESlateVisibility::Collapsed);
 	}
-	
+
 
 	ConstructorComponent->OnConstructionObjectPlacedHandle.AddDynamic(this, &ThisClass::OnConstructionObjectPlaced);
 	BoxColliderComponent->OnComponentBeginOverlap.AddDynamic(this, &ThisClass::OnOverlapped);
@@ -132,7 +134,7 @@ void AWorkbenchActor::SwitchConstructMesh()
 
 		if (IsValid(ConstructorComponent))
 		{
-			ConstructorComponent->UpdatePlacingConstructMesh(CurrentConstructMesh);
+			ConstructorComponent->SwitchPlacingConstructMesh(CurrentConstructMesh);
 		}
 	}
 }
@@ -141,32 +143,20 @@ void AWorkbenchActor::OnBtnPlaceClicked()
 {
 	if (IsValid(ConstructorComponent))
 	{
-		ConstructorComponent->BeginPlacement(CurrentConstructMesh,ECC_GameTraceChannel2); // Workbench channel	
+		ConstructorComponent->BeginPlacement(CurrentConstructMesh, ECC_GameTraceChannel2); // Workbench channel
+		UWidgetBlueprintLibrary::SetFocusToGameViewport();
 	}
 }
 
 void AWorkbenchActor::OnBtnSaveClicked()
 {
-	for (const auto Actor : PlacedConstructionActors)
+	if (IsValid(BlueprintManagerComponent))
 	{
-		const auto NewBlueprintObject = NewObject<UBlueprintObject>();
-
-		if (auto MeshComp = Actor->FindComponentByClass<UStaticMeshComponent>())
-		{
-			const auto StaticMesh = MeshComp->GetStaticMesh();
-			NewBlueprintObject->MeshPath = StaticMesh->GetPathName();
-		}
-		
-		auto RelativeLocation = Actor->GetActorLocation() - OriginComponent->GetComponentLocation();
-		RelativeLocation.Z = 0;
-		NewBlueprintObject->LocalPosition = RelativeLocation;
-
-		NewBlueprintObject->Scale = Actor->GetActorScale3D();
-		NewBlueprintObject->Rotation = Actor->GetActorRotation().Euler();
-		
-		BlueprintManagerComponent->AddBlueprintObject(NewBlueprintObject);
-
-		Actor->Destroy();
+		const FString BPName = FString::Printf(TEXT("Blueprint-%d"), NameIndex);
+		BlueprintManagerComponent->NewBlueprint(BPName,
+		                                        PlacedConstructionActors,
+		                                        OriginComponent->GetComponentLocation());
+		++NameIndex;
 	}
 
 	PlacedConstructionActors.Empty();
@@ -217,7 +207,7 @@ void AWorkbenchActor::OnSelectPreviousPiece()
 	{
 		CurrentSelectedMeshIndex = ConstructionParts.Num() - 1;
 	}
-	
+
 	SwitchConstructMesh();
 }
 
@@ -225,7 +215,7 @@ void AWorkbenchActor::OnRotate(float InAxisValue)
 {
 	if (InAxisValue == 0)
 		return;
-	
+
 	if (IsValid(ConstructorComponent))
 	{
 		ConstructorComponent->Rotate();
@@ -236,10 +226,10 @@ void AWorkbenchActor::OnScale(float InAxisValue)
 {
 	if (InAxisValue == 0)
 		return;
-	
+
 	if (IsValid(ConstructorComponent))
 	{
-		ConstructorComponent->Scale(InAxisValue > 0 );
+		ConstructorComponent->Scale(InAxisValue > 0);
 	}
 }
 
@@ -273,7 +263,7 @@ void AWorkbenchActor::OnConfirmationDialogueClosed(bool IsConfirmed)
 {
 	if (IsConfirmed)
 	{
-		for(auto Actor : SelectedConstructionActors)
+		for (auto Actor : SelectedConstructionActors)
 		{
 			PlacedConstructionActors.Remove(Actor);
 			Actor->Destroy();

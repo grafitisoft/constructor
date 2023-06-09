@@ -11,10 +11,10 @@
 // Sets default values for this component's properties
 UBlueprintManagerActorComponent::UBlueprintManagerActorComponent()
 {
-	static ConstructorHelpers::FClassFinder<AActor> ChildActorClassSearch(TEXT("/Game/Constructor/Blueprints/BP_ClickableActor"));
-	if (ChildActorClassSearch.Succeeded())
+	static ConstructorHelpers::FClassFinder<AActor> BlueprintComponentClassSearch(TEXT("/Game/Constructor/Blueprints/BP_ClickableActor"));
+	if (BlueprintComponentClassSearch.Succeeded())
 	{
-		BlueprintComponentActorClass = ChildActorClassSearch.Class;
+		BlueprintComponentActorClass = BlueprintComponentClassSearch.Class;
 	}
 
 	static ConstructorHelpers::FClassFinder<AActor> BlueprintActorClassSearch(TEXT("/Game/Constructor/Blueprints/BP_BlueprintActor"));
@@ -24,47 +24,88 @@ UBlueprintManagerActorComponent::UBlueprintManagerActorComponent()
 	}
 }
 
-
-// Called when the game starts
-void UBlueprintManagerActorComponent::BeginPlay()
+void UBlueprintManagerActorComponent::NewBlueprint(FString InName, TArray<AActor*> InComponents, const FVector& OriginLocation)
 {
-	Super::BeginPlay();
+	TArray<class UBlueprintObject*> Components;
 
-	// ...
-}
-
-void UBlueprintManagerActorComponent::AddBlueprintObject(UBlueprintObject* InBlueprintObject)
-{
-	Blueprint.Add(InBlueprintObject);
-}
-
-AActor* UBlueprintManagerActorComponent::GetBlueprint() const
-{
-	if (Blueprint.Num() != 0 && BlueprintComponentActorClass)
+	for (const auto Actor : InComponents)
 	{
-		const auto BlueprintActor = GetWorld()->SpawnActor(BlueprintActorClass);
-		
-		for (const auto& BlueprintObject : Blueprint)
-		{
-			const auto NewBlueprintComponentActor = GetWorld()->SpawnActor(BlueprintComponentActorClass);
-			NewBlueprintComponentActor->SetActorRelativeLocation(BlueprintObject->LocalPosition);
-			NewBlueprintComponentActor->SetActorRotation(FRotator::MakeFromEuler(BlueprintObject->Rotation)); // ????
-			NewBlueprintComponentActor->SetActorScale3D(BlueprintObject->Scale);
+		const auto NewBlueprintObject = NewObject<UBlueprintObject>();
 
-			if (const auto MeshComp = NewBlueprintComponentActor->FindComponentByClass<UStaticMeshComponent>())
-			{
-				//if (const auto StaticMesh = LoadObject<UStaticMesh>(nullptr, TEXT("/Game/StarterContent/Shapes/Shape_NarrowCapsule.Shape_NarrowCapsule")))
-				if (const auto StaticMesh = LoadObject<UStaticMesh>(nullptr, *BlueprintObject->MeshPath))
-				{
-					MeshComp->SetStaticMesh(StaticMesh);
-				}
-			}
-			
-			NewBlueprintComponentActor->AttachToActor(BlueprintActor, FAttachmentTransformRules::KeepRelativeTransform);
+		if (const auto MeshComp = Actor->FindComponentByClass<UStaticMeshComponent>())
+		{
+			const auto StaticMesh = MeshComp->GetStaticMesh();
+			NewBlueprintObject->MeshPath = StaticMesh->GetPathName();
 		}
 
-		return BlueprintActor;
+		auto RelativeLocation = Actor->GetActorLocation() - OriginLocation;
+		RelativeLocation.Z = 0;
+		NewBlueprintObject->LocalPosition = RelativeLocation;
+
+		NewBlueprintObject->Scale = Actor->GetActorScale3D();
+		NewBlueprintObject->Rotation = Actor->GetActorRotation().Euler();
+
+		Components.Add(NewBlueprintObject);
+
+		Actor->Destroy();
+	}
+
+	FBlueprintData BP;
+	BP.BPName = FString(InName);
+	BP.Components = Components;
+
+	if (!Blueprints.Contains(InName))
+	{
+		Blueprints.Add(InName, BP);
+	}
+}
+
+ABlueprintActor* UBlueprintManagerActorComponent::GetBlueprint(const FString& InBPName) const
+{
+	if (Blueprints.Contains(InBPName))
+	{
+		const auto BP = Blueprints[InBPName];
+
+		if (BP.Components.Num() != 0 && BlueprintComponentActorClass)
+		{
+			const auto BlueprintActor = GetWorld()->SpawnActor<ABlueprintActor>(BlueprintActorClass);
+
+			for (const auto& BlueprintObject : BP.Components)
+			{
+				if (IsValid(BlueprintObject))
+				{
+					const auto NewBlueprintComponentActor = GetWorld()->SpawnActor(BlueprintComponentActorClass);
+
+					NewBlueprintComponentActor->SetActorRelativeLocation(BlueprintObject->LocalPosition);
+					NewBlueprintComponentActor->SetActorRotation(FRotator::MakeFromEuler(BlueprintObject->Rotation)); // ????
+					NewBlueprintComponentActor->SetActorScale3D(BlueprintObject->Scale);
+
+					if (const auto MeshComp = NewBlueprintComponentActor->FindComponentByClass<UStaticMeshComponent>())
+					{
+						if (const auto StaticMesh = LoadObject<UStaticMesh>(nullptr, *BlueprintObject->MeshPath))
+						{
+							MeshComp->SetStaticMesh(StaticMesh);
+						}
+					}
+
+					NewBlueprintComponentActor->AttachToActor(BlueprintActor, FAttachmentTransformRules::KeepRelativeTransform);
+					BlueprintActor->AddBlueprintComponent(NewBlueprintComponentActor);
+				}
+			}
+
+			return BlueprintActor;
+		}
 	}
 
 	return nullptr;
+}
+
+TArray<FBlueprintData> UBlueprintManagerActorComponent::GetBlueprints() const
+{
+	TArray<FBlueprintData> OutBlueprints;
+
+	Blueprints.GenerateValueArray(OutBlueprints);
+
+	return OutBlueprints;
+	
 }

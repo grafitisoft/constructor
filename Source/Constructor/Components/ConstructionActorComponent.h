@@ -18,16 +18,19 @@ public:
 	UConstructionActorComponent();
 
 	UFUNCTION()
-	void UpdatePlacingConstructMesh(UStaticMesh* InNewMesh) const;
+	void SwitchPlacingConstructMesh(UStaticMesh* InNewMesh) const;
+
+	UFUNCTION()
+	void SwitchPlacingBlueprint(class ABlueprintActor* InNewActor);
 	
 	UFUNCTION()
 	void BeginPlacement(UStaticMesh* InPlacingMesh, ECollisionChannel InCollisionChannel);
 
 	UFUNCTION()
-	void BeginActorPlacement(AActor* InPlacingActor, ECollisionChannel InCollisionChannel);
+	void BeginBlueprintPlacement(ABlueprintActor* InPlacingActor, ECollisionChannel InCollisionChannel);
 
 	UFUNCTION()
-	void EndActorPlacement();
+	bool EndBlueprintPlacement();
 
 	UFUNCTION()
 	void SpawnPlacedObject(UStaticMesh* InStaticMesh);
@@ -73,5 +76,8 @@ private:
 	
 	UFUNCTION()
 	void UpdatePlacement() const;
+
+	UFUNCTION()
+	void InitializeBlueprintForPlacement(const ABlueprintActor* InBlueprint) const;
 
 };

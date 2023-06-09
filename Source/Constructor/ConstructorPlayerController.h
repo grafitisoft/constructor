@@ -39,4 +39,11 @@ private:
 
 	UFUNCTION()
 	void EndBlueprintPlace();
+
+	UFUNCTION()
+	void SwitchPlacingBlueprint(float InAxisValue);
+
+	uint32 bIsPlacingBlueprint:1;
+
+	int CurrentBlueprintIndex;
 };
