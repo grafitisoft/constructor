@@ -10,6 +10,7 @@
 class ABlueprintActor;
 class UBlueprintObject;
 
+/** Data wrapper to store in a TMap, since TMaps do not support nested collection, i.e TArray, as ValueType */
 USTRUCT()
 struct FBlueprintData
 {
@@ -22,6 +23,9 @@ struct FBlueprintData
 	TArray<UBlueprintObject *> Components;
 };
 
+/** Manager class to build Blueprint Actors given component actors
+ * Workbench owns this manager to communicate. In exploration, player controller access this from the last visited Wokrkbench
+ */
 UCLASS(ClassGroup=(Custom), meta=(BlueprintSpawnableComponent))
 class CONSTRUCTOR_API UBlueprintManagerActorComponent : public UActorComponent
 {

@@ -7,6 +7,9 @@
 #include "PlaceableActorComponent.generated.h"
 
 
+/** This component checks overlapping and evaluates validation, switching materials for visualize
+ * @todo Currently we only manipulate material index 0. 
+ */
 UCLASS(ClassGroup=(Custom), meta=(BlueprintSpawnableComponent))
 class CONSTRUCTOR_API UPlaceableActorComponent : public UActorComponent
 {

@@ -28,6 +28,7 @@ void AConstructorPlayerController::BeginPlay()
 	InputComponent->BindAction(FName("LeftClick"), IE_Pressed, this, &ThisClass::EndBlueprintPlace);
 
 	InputComponent->BindAxis(FName("SwitchBlueprint"), this, &ThisClass::SwitchPlacingBlueprint);
+	InputComponent->BindAxis(FName("RotatePiece"), this, &ThisClass::OnRotate);
 
 	TArray<AActor*> OutActors;
 	UGameplayStatics::GetAllActorsOfClass(GetWorld(), AWorkbenchActor::StaticClass(), OutActors);
@@ -129,4 +130,16 @@ void AConstructorPlayerController::SwitchPlacingBlueprint(float InAxisValue)
 			}
 		}
 	}
+}
+
+void AConstructorPlayerController::OnRotate(float InAxisValue)
+{
+	if (InAxisValue == 0)
+		return;
+
+	if (IsValid(ConstructionComp))
+	{
+		ConstructionComp->Rotate();
+	}
+
 }

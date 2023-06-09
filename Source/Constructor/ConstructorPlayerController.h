@@ -43,6 +43,9 @@ private:
 	UFUNCTION()
 	void SwitchPlacingBlueprint(float InAxisValue);
 
+	UFUNCTION()
+	void OnRotate(float InAxisValue);
+
 	uint32 bIsPlacingBlueprint:1;
 
 	int CurrentBlueprintIndex;

@@ -9,6 +9,9 @@
 class UConfirmDialgueWidget;
 DECLARE_DYNAMIC_MULTICAST_DELEGATE_TwoParams(FWorkbenchActivationStatusChangedDelegate, AWorkbenchActor *, InWorkbench, bool, IsActive);
 
+/** Controller for placing blueprint pieces and saving Blueprints
+ * BoxCollider checks for if Player is inside the area. @todo think of a better solution. May be problematic 
+ */
 UCLASS()
 class CONSTRUCTOR_API AWorkbenchActor : public AActor
 {

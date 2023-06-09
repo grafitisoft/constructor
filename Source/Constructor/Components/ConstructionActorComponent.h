@@ -8,6 +8,13 @@
 
 DECLARE_DYNAMIC_MULTICAST_DELEGATE_TwoParams(FConstructionObjectPlacedDelegate, class UConstructionActorComponent*, InConstructionActor, AActor *, InNewActor);
 
+/**
+ * This component handles the main placement logic. Two different begins mode exists:
+ * One functioning via a StaticMesh, to place and build Blueprints, using Workbench trace channel (ECC_GameTraceChannel2)
+ * One functioning via a Blueprint Actor, to place Blueprints using Floor trace channel (ECC_GameTraceChannel2)
+ * Placeable Actor and Clickable Actor components are added/removed ad runtime when needed to support any actor for further extensions
+ * @todo we may bind to inputs for rotation and scale in the future. Now the owner actors communicate handling input. Engine crashes when accessing owners InputComponent
+ */
 UCLASS(ClassGroup=(Custom), meta=(BlueprintSpawnableComponent))
 class CONSTRUCTOR_API UConstructionActorComponent : public UActorComponent
 {

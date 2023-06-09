@@ -188,6 +188,38 @@ void UConstructionActorComponent::InitializeBlueprintForPlacement(const ABluepri
 	}
 }
 
+void UConstructionActorComponent::SpawnPlacedObject(UStaticMesh* InStaticMesh)
+{
+	if (bIsInPlacementMode && PlaceableActor)
+	{
+		if (const auto PlaceableComponent = Cast<UPlaceableActorComponent>(
+			PlaceableActor->GetComponentByClass(UPlaceableActorComponent::StaticClass())))
+		{
+			if (PlaceableComponent->IsPlacementValid())
+			{
+				const auto Location = PlaceableActor->GetActorLocation();
+				const auto Rotation = PlaceableActor->GetActorRotation();
+				const auto Scale = PlaceableActor->GetActorScale3D();
+
+				FActorSpawnParameters SpawnParams;
+				SpawnParams.SpawnCollisionHandlingOverride = ESpawnActorCollisionHandlingMethod::AlwaysSpawn;
+
+				const auto NewActor = GetWorld()->SpawnActor(PlaceableActorClass, &Location, &Rotation, SpawnParams);
+				NewActor->SetActorScale3D(Scale);
+
+				if (const auto MeshComp = NewActor->FindComponentByClass<UStaticMeshComponent>())
+				{
+					MeshComp->SetStaticMesh(InStaticMesh);
+				}
+
+				OnConstructionObjectPlacedHandle.Broadcast(this, NewActor);
+
+				EndPlacement();
+			}
+		}
+	}
+}
+
 void UConstructionActorComponent::Rotate()
 {
 	if (bIsInPlacementMode && PlaceableActor)
@@ -220,37 +252,5 @@ void UConstructionActorComponent::Scale(bool bIsUp)
 		CurrentScale = ClampVector(CurrentScale, FVector(0.5, 0.5, 0.5), FVector(3, 3, 3));
 
 		PlaceableActor->SetActorScale3D(CurrentScale);
-	}
-}
-
-void UConstructionActorComponent::SpawnPlacedObject(UStaticMesh* InStaticMesh)
-{
-	if (bIsInPlacementMode && PlaceableActor)
-	{
-		if (const auto PlaceableComponent = Cast<UPlaceableActorComponent>(
-			PlaceableActor->GetComponentByClass(UPlaceableActorComponent::StaticClass())))
-		{
-			if (PlaceableComponent->IsPlacementValid())
-			{
-				const auto Location = PlaceableActor->GetActorLocation();
-				const auto Rotation = PlaceableActor->GetActorRotation();
-				const auto Scale = PlaceableActor->GetActorScale3D();
-
-				FActorSpawnParameters SpawnParams;
-				SpawnParams.SpawnCollisionHandlingOverride = ESpawnActorCollisionHandlingMethod::AlwaysSpawn;
-
-				const auto NewActor = GetWorld()->SpawnActor(PlaceableActorClass, &Location, &Rotation, SpawnParams);
-				NewActor->SetActorScale3D(Scale);
-
-				if (const auto MeshComp = NewActor->FindComponentByClass<UStaticMeshComponent>())
-				{
-					MeshComp->SetStaticMesh(InStaticMesh);
-				}
-
-				OnConstructionObjectPlacedHandle.Broadcast(this, NewActor);
-
-				EndPlacement();
-			}
-		}
 	}
 }

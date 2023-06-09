@@ -50,9 +50,9 @@ void AWorkbenchActor::BeginPlay()
 			WorkbenchWidget->AddToViewport();
 			WorkbenchWidget->SetVisibility(ESlateVisibility::Hidden);
 
-			WorkbenchWidget->BtnPlace->OnClicked.AddDynamic(this, &ThisClass::OnBtnPlaceClicked);
-			WorkbenchWidget->BtnSaveBlueprint->OnClicked.AddDynamic(this, &ThisClass::OnBtnSaveClicked);
-			WorkbenchWidget->BtnDeleteSelected->OnClicked.AddDynamic(this, &ThisClass::OnBtnDeleteSelectedClicked);
+			WorkbenchWidget->BtnPlace->OnPressed.AddDynamic(this, &ThisClass::OnBtnPlaceClicked);
+			WorkbenchWidget->BtnSaveBlueprint->OnPressed.AddDynamic(this, &ThisClass::OnBtnSaveClicked);
+			WorkbenchWidget->BtnDeleteSelected->OnPressed.AddDynamic(this, &ThisClass::OnBtnDeleteSelectedClicked);
 		}
 	}
 
@@ -244,6 +244,7 @@ void AWorkbenchActor::OnConstructionObjectPlaced(UConstructionActorComponent* In
 	}
 }
 
+/** Track component selection status */
 void AWorkbenchActor::OnConstructionActorStatusChanged(AActor* InActor, bool IsSelected)
 {
 	if (IsValid(InActor))

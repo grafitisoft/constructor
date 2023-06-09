@@ -6,6 +6,8 @@
 #include "GameFramework/Actor.h"
 #include "BlueprintActor.generated.h"
 
+/** Container class for components.
+ * Components added via AddToActor in runtime, so we must manually delete child actors on Destroyed override */
 UCLASS()
 class CONSTRUCTOR_API ABlueprintActor : public AActor
 {
@@ -18,6 +20,7 @@ public:
 	UFUNCTION()
 	void AddBlueprintComponent(AActor *InComponentActor);
 
+	/** Check all child PlaceableActorComponents for validation */
 	UFUNCTION()
 	bool IsPlacementValid();
 	
